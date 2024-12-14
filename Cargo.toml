@@ -1,0 +1,10 @@
+[package]
+name = "sara_ecs"
+description = "a simple ecs library for study purposes."
+authors = ["Sara01"]
+license = "Apache-2.0"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "2.0.7"
