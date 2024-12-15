@@ -4,9 +4,8 @@ use std::{
     rc::Rc,
 };
 
-use crate::ecs_errors::ECSError;
-
 use super::Entities;
+use crate::ecs_errors::ECSError;
 
 type ExtractedComponents<'a> = &'a Vec<Option<Rc<RefCell<dyn Any>>>>;
 
