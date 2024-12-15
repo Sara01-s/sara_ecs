@@ -1,8 +1,7 @@
 use std::any::{Any, TypeId};
 
-use crate::ecs_errors::ECSError;
-
 use super::{query_entity::QueryEntity, Component, Entities};
+use crate::ecs_errors::ECSError;
 
 pub type QueryIndexes = Vec<usize>;
 pub type QueryComponents = Vec<Vec<Component>>;
