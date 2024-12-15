@@ -1,7 +1,7 @@
-use crate::entities::query::Query;
 use std::any::Any;
 
 use ecs_errors::ECSError;
+use entities::query::Query;
 
 pub mod ecs_errors;
 pub mod entities;
@@ -25,7 +25,7 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
+    use sara_ecs::World;
     let mut world = World::new();
 
     world.add_resource(10_u32);
@@ -44,7 +44,7 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
+    use sara_ecs::World;
     let mut world = World::new();
 
     world.add_resource(10_u32);
@@ -68,7 +68,7 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
+    use sara_ecs::World;
     let mut world = World::new();
 
     world.add_resource(10_u32);
@@ -87,7 +87,7 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
+    use sara_ecs::World;
     let mut world = World::new();
 
     world.add_resource(10_u32);
@@ -106,7 +106,7 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
+    use sara_ecs::World;
     struct Health(pub u32);
     let mut world = World::new();
 
@@ -126,8 +126,8 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
-    use ecs::ecs_errors::ECSError;
+    use sara_ecs::World;
+    use sara_ecs::ecs_errors::ECSError;
 
     struct Health(pub u32);
     struct Speed(pub f32);
@@ -158,8 +158,8 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
-    use ecs::ecs_errors::ECSError;
+    use sara_ecs::World;
+    use sara_ecs::ecs_errors::ECSError;
 
     struct Health(pub u32);
     struct Speed(pub f32);
@@ -171,7 +171,7 @@ impl World {
         let entity = world.create_entity().with_component(Health(100))?;
 
         // Add a new component to the entity with ID 0
-        world.add_component_to_entity_by_id(0, Speed(15.0))?;
+        world.add_component_to_entity(0, Speed(15.0))?;
 
         Ok(())
     }
@@ -192,8 +192,8 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
-    use ecs::ecs_errors::ECSError;
+    use sara_ecs::World;
+    use sara_ecs::ecs_errors::ECSError;
 
     struct Health(pub u32);
     struct Speed(pub f32);
@@ -205,7 +205,7 @@ impl World {
         let entity = world.create_entity().with_component(Health(100))?;
 
         // Remove the entity with ID 0
-        world.remove_entity_by_id(0)?;
+        world.remove_entity(0)?;
 
         Ok(())
     }
@@ -222,8 +222,8 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
-    use ecs::ecs_errors::ECSError;
+    use sara_ecs::World;
+    use sara_ecs::ecs_errors::ECSError;
 
     struct Health(pub u32);
     struct Speed(pub f32);
@@ -235,7 +235,7 @@ impl World {
         let entity = world.create_entity().with_component(Health(100))?;
 
         // Remove the Health component from entity 0
-        world.remove_component_by_entity_id::<Health>(0)?;
+        world.remove_entity_component::<Health>(0)?;
 
         Ok(())
     }
@@ -251,8 +251,8 @@ impl World {
 
     Example:
     ```
-    use ecs::World;
-    use ecs::ecs_errors::ECSError;
+    use sara_ecs::World;
+    use sara_ecs::ecs_errors::ECSError;
 
     struct Health(pub u32);
     struct Speed(pub f32);
