@@ -81,6 +81,7 @@ mod test {
 
         let world_width_type_id = TypeId::of::<WorldWidth>();
         let is_resource_deleted = !resources.data.contains_key(&world_width_type_id);
+
         assert!(is_resource_deleted);
     }
 

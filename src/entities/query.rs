@@ -102,7 +102,6 @@ mod test {
         assert_eq!(query.map, 3);
         assert_eq!(TypeId::of::<u32>(), query.type_ids[0]);
         assert_eq!(TypeId::of::<f32>(), query.type_ids[1]);
-
         Ok(())
     }
 
@@ -151,11 +150,10 @@ mod test {
 
         let borrowed_second_f32 = f32s[1].borrow();
         let second_f32 = borrowed_second_f32.downcast_ref::<f32>().unwrap();
-        assert_eq!(*second_f32, 25.0);
 
+        assert_eq!(*second_f32, 25.0);
         assert_eq!(indexes[0], 0);
         assert_eq!(indexes[1], 3);
-
         Ok(())
     }
 
@@ -175,7 +173,6 @@ mod test {
         let u32s = &query_result.1[0];
 
         assert_eq!(u32s.len(), 1);
-
         Ok(())
     }
 
@@ -198,7 +195,6 @@ mod test {
         let first_u32 = borrowed_first_u32.downcast_ref::<u32>().unwrap();
 
         assert_eq!(*first_u32, 10);
-
         Ok(())
     }
 

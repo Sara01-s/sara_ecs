@@ -15,6 +15,7 @@ fn create_and_get_resource_immutably() {
     dbg!(&world);
 
     let fps = world.get_resource::<FpsResource>().unwrap();
+
     assert_eq!(fps.0, 60);
 }
 
@@ -28,15 +29,16 @@ fn get_resources_mutably() {
     }
 
     let fps = world.get_resource_mut::<FpsResource>().unwrap();
+
     assert_eq!(fps.0, 61);
 }
 
 #[test]
 fn remove_resources() {
     let mut world = get_test_world();
-
     world.remove_resource::<FpsResource>();
 
     let removed_resource = world.get_resource::<FpsResource>();
+
     assert!(removed_resource.is_none());
 }

@@ -73,7 +73,6 @@ fn query_for_entities() -> Result<(), ECSError> {
     let second_scale = borrowed_second_scale.downcast_mut::<Scale>().unwrap();
     second_scale.0 *= 10.0;
     assert_eq!(second_scale.0, 100.0);
-
     Ok(())
 }
 
@@ -125,7 +124,6 @@ fn add_component_to_entity() -> Result<(), ECSError> {
         .run();
 
     assert_eq!(query.0.len(), 1);
-
     Ok(())
 }
 
@@ -159,6 +157,5 @@ fn deleting_and_entity() -> Result<(), ECSError> {
 
     assert_eq!(position.0, 30.0);
     assert_eq!(position.1, 35.0);
-
     Ok(())
 }
