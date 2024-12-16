@@ -128,7 +128,7 @@ fn add_component_to_entity() -> Result<(), ECSError> {
 }
 
 #[test]
-fn deleting_and_entity() -> Result<(), ECSError> {
+fn deleting_an_entity() -> Result<(), ECSError> {
     let mut world = World::new();
 
     world.register_component::<Position>();
