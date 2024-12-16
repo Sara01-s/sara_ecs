@@ -15,37 +15,37 @@ pub type Component = Rc<RefCell<dyn Any>>;
 pub type Components = HashMap<TypeId, Vec<Option<Component>>>;
 
 #[derive(Debug, Default)]
-pub struct Entities {
+pub struct EntityStorage {
     components: Components,
-    component_bit_masks: HashMap<TypeId, u32>,
-    components_map: Vec<u32>,
-    inserting_into_index: usize,
+    component_bitmasks: HashMap<TypeId, u32>,
+    entity_component_bitmasks: Vec<u32>,
+    next_free_entity_id: usize,
 }
 
-impl Entities {
+impl EntityStorage {
     pub fn register_component<T: Any + 'static>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         self.components.insert(type_id, vec![]);
-        self.component_bit_masks
-            .insert(type_id, 1 << self.component_bit_masks.len());
+        self.component_bitmasks
+            .insert(type_id, 1 << self.component_bitmasks.len());
     }
 
     pub fn create_entity(&mut self) -> &mut Self {
         if let Some((index, _)) = self
-            .components_map
+            .entity_component_bitmasks
             .iter()
             .enumerate()
             .find(|(_index, mask)| **mask == 0)
         {
-            self.inserting_into_index = index;
+            self.next_free_entity_id = index;
         } else {
             self.components
                 .iter_mut()
                 .for_each(|(_key, components)| components.push(None));
 
-            self.components_map.push(0);
-            self.inserting_into_index = self.components_map.len() - 1;
+            self.entity_component_bitmasks.push(0);
+            self.next_free_entity_id = self.entity_component_bitmasks.len() - 1;
         }
 
         self
@@ -53,7 +53,7 @@ impl Entities {
 
     pub fn with_component(&mut self, data: impl Any) -> Result<&mut Self, ECSError> {
         let type_id = data.type_id();
-        let index = self.inserting_into_index;
+        let index = self.next_free_entity_id;
 
         if let Some(components) = self.components.get_mut(&type_id) {
             let component = components
@@ -61,8 +61,8 @@ impl Entities {
                 .ok_or(ECSError::CreateComponentNeverCalled)?;
             *component = Some(Rc::new(RefCell::new(data)));
 
-            let bitmask = self.component_bit_masks.get(&type_id).unwrap();
-            self.components_map[index] |= *bitmask;
+            let bitmask = self.component_bitmasks.get(&type_id).unwrap();
+            self.entity_component_bitmasks[index] |= *bitmask;
         } else {
             return Err(ECSError::ComponentNotRegistered.into());
         }
@@ -70,20 +70,20 @@ impl Entities {
     }
 
     pub fn get_bitmask(&self, type_id: &TypeId) -> Option<u32> {
-        self.component_bit_masks.get(type_id).copied()
+        self.component_bitmasks.get(type_id).copied()
     }
 
     pub fn remove_entity_component<T: Any>(&mut self, index: usize) -> Result<(), ECSError> {
         let type_id = TypeId::of::<T>();
 
-        let mask = if let Some(mask) = self.component_bit_masks.get(&type_id) {
+        let mask = if let Some(mask) = self.component_bitmasks.get(&type_id) {
             mask
         } else {
             return Err(ECSError::ComponentNotRegistered.into());
         };
 
         if self.has_component(index, *mask) {
-            self.components_map[index] ^= *mask;
+            self.entity_component_bitmasks[index] ^= *mask;
         }
 
         Ok(())
@@ -95,12 +95,12 @@ impl Entities {
         data: impl Any,
     ) -> Result<(), ECSError> {
         let type_id = data.type_id();
-        let mask = if let Some(mask) = self.component_bit_masks.get(&type_id) {
+        let mask = if let Some(mask) = self.component_bitmasks.get(&type_id) {
             mask
         } else {
             return Err(ECSError::ComponentNotRegistered.into());
         };
-        self.components_map[index] |= *mask;
+        self.entity_component_bitmasks[index] |= *mask;
 
         let components = self.components.get_mut(&type_id).unwrap();
         components[index] = Some(Rc::new(RefCell::new(data)));
@@ -109,7 +109,7 @@ impl Entities {
     }
 
     pub fn remove_entity(&mut self, index: usize) -> Result<(), ECSError> {
-        match self.components_map.get_mut(index) {
+        match self.entity_component_bitmasks.get_mut(index) {
             Some(map) => *map = 0,
             None => return Err(ECSError::EntityDoesNotExist.into()),
         }
@@ -118,7 +118,7 @@ impl Entities {
     }
 
     fn has_component(&self, index: usize, mask: u32) -> bool {
-        self.components_map[index] & mask == mask
+        self.entity_component_bitmasks[index] & mask == mask
     }
 }
 
@@ -133,7 +133,7 @@ mod test {
 
     #[test]
     fn register_an_entity() {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
         entities.register_component::<Health>();
 
         let type_id = TypeId::of::<Health>();
@@ -144,25 +144,25 @@ mod test {
 
     #[test]
     fn bitmask_updated_when_registering_entities() {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
         entities.register_component::<Health>();
 
         let type_id = TypeId::of::<Health>();
-        let mask = entities.component_bit_masks.get(&type_id).unwrap();
+        let mask = entities.component_bitmasks.get(&type_id).unwrap();
 
         assert_eq!(*mask, 1);
 
         entities.register_component::<Speed>();
 
         let type_id = TypeId::of::<Speed>();
-        let mask = entities.component_bit_masks.get(&type_id).unwrap();
+        let mask = entities.component_bitmasks.get(&type_id).unwrap();
 
         assert_eq!(*mask, 2);
     }
 
     #[test]
     fn create_entity() {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.register_component::<Speed>();
@@ -177,7 +177,7 @@ mod test {
 
     #[test]
     fn with_component() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.register_component::<Speed>();
@@ -197,7 +197,7 @@ mod test {
 
     #[test]
     fn map_is_updated_when_creating_entities() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.register_component::<Speed>();
@@ -206,19 +206,19 @@ mod test {
             .with_component(Health(100))?
             .with_component(Speed(15))?;
 
-        let entity_map = entities.components_map[0];
+        let entity_map = entities.entity_component_bitmasks[0];
 
         assert_eq!(entity_map, 3);
         entities.create_entity().with_component(Speed(15))?;
 
-        let entity_map = entities.components_map[1];
+        let entity_map = entities.entity_component_bitmasks[1];
         assert_eq!(entity_map, 2);
         Ok(())
     }
 
     #[test]
     fn remove_component_by_entity_id() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.register_component::<Speed>();
@@ -229,20 +229,20 @@ mod test {
 
         entities.remove_entity_component::<Health>(0)?;
 
-        assert_eq!(entities.components_map[0], 2);
+        assert_eq!(entities.entity_component_bitmasks[0], 2);
         Ok(())
     }
 
     #[test]
     fn add_component_to_entity_by_id() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.register_component::<Speed>();
         entities.create_entity().with_component(Health(100))?;
         entities.add_component_to_entity(0, Speed(50))?;
 
-        assert_eq!(entities.components_map[0], 3);
+        assert_eq!(entities.entity_component_bitmasks[0], 3);
 
         let speed_type_id = TypeId::of::<Speed>();
         let wrapped_speeds = entities.components.get(&speed_type_id).unwrap();
@@ -256,19 +256,19 @@ mod test {
 
     #[test]
     fn remove_entity_by_id() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.create_entity().with_component(Health(100))?;
         entities.remove_entity(0)?;
 
-        assert_eq!(entities.components_map[0], 0);
+        assert_eq!(entities.entity_component_bitmasks[0], 0);
         Ok(())
     }
 
     #[test]
     fn created_entities_are_inserted_into_deleted_entities_columns() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<Health>();
         entities.create_entity().with_component(Health(100))?;
@@ -276,7 +276,7 @@ mod test {
         entities.remove_entity(0)?;
         entities.create_entity().with_component(Health(25))?;
 
-        assert_eq!(entities.components_map[0], 1);
+        assert_eq!(entities.entity_component_bitmasks[0], 1);
 
         let type_id = TypeId::of::<Health>();
         let borrowed_health = &entities.components.get(&type_id).unwrap()[0]
@@ -292,7 +292,7 @@ mod test {
 
     #[test]
     fn should_not_add_component_back_after_deleting_twice() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<u32>();
         entities.register_component::<f32>();
@@ -303,14 +303,14 @@ mod test {
         entities.remove_entity_component::<u32>(0)?;
         entities.remove_entity_component::<u32>(0)?;
 
-        assert_eq!(entities.components_map[0], 2);
+        assert_eq!(entities.entity_component_bitmasks[0], 2);
 
         Ok(())
     }
 
     #[test]
     fn inserting_into_index_should_change_when_adding_components() -> Result<(), ECSError> {
-        let mut entities = Entities::default();
+        let mut entities = EntityStorage::default();
 
         entities.register_component::<f32>();
         entities.register_component::<u32>();
@@ -318,32 +318,32 @@ mod test {
         // Inserting an entity with 2 components to make sure that inserting_into_index is correct
         let creating_entity = entities.create_entity();
 
-        assert_eq!(creating_entity.inserting_into_index, 0);
+        assert_eq!(creating_entity.next_free_entity_id, 0);
         creating_entity
             .with_component(100.0_f32)?
             .with_component(10_u32)?;
-        assert_eq!(entities.inserting_into_index, 0);
+        assert_eq!(entities.next_free_entity_id, 0);
 
         // Inserting another entity with 2 components to make sure that the inserting_into_index is now 1
         let creating_entity = entities.create_entity();
-        assert_eq!(creating_entity.inserting_into_index, 1);
+        assert_eq!(creating_entity.next_free_entity_id, 1);
         creating_entity
             .with_component(110.0_f32)?
             .with_component(20_u32)?;
-        assert_eq!(entities.inserting_into_index, 1);
+        assert_eq!(entities.next_free_entity_id, 1);
 
         // delete the first entity, and re-create to make sure that inserting_into_index is back
         // to 0 again
         entities.remove_entity(0)?;
         let creating_entity = entities.create_entity();
 
-        assert_eq!(creating_entity.inserting_into_index, 0);
+        assert_eq!(creating_entity.next_free_entity_id, 0);
 
         creating_entity
             .with_component(100.0_f32)?
             .with_component(10_u32)?;
 
-        assert_eq!(entities.inserting_into_index, 0);
+        assert_eq!(entities.next_free_entity_id, 0);
         Ok(())
     }
 }

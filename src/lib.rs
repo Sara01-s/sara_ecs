@@ -1,16 +1,16 @@
 use std::any::Any;
 
 use ecs_errors::ECSError;
-use entities::query::Query;
+use entity_storage::query::Query;
 
 pub mod ecs_errors;
-pub mod entities;
-mod resources;
+mod entity_storage;
+mod resource_storage;
 
 #[derive(Default, Debug)]
 pub struct World {
-    resources: resources::Resources,
-    entities: entities::Entities,
+    resource_storage: resource_storage::ResourceStorage,
+    entitiy_storage: entity_storage::EntityStorage,
 }
 
 impl World {
@@ -34,8 +34,8 @@ impl World {
     assert_eq!(*resource, 10);
     ```
     */
-    pub fn add_resource(&mut self, resource: impl Any) {
-        self.resources.add(resource);
+    pub fn add_resource(&mut self, resource: impl Any) -> Result<(), ECSError> {
+        self.resource_storage.insert(resource)
     }
 
     /**
@@ -59,7 +59,7 @@ impl World {
     ```
     */
     pub fn get_resource_mut<T: Any>(&mut self) -> Option<&mut T> {
-        self.resources.get_mut::<T>()
+        self.resource_storage.get_mut::<T>()
     }
 
     /**
@@ -79,7 +79,7 @@ impl World {
     ```
     */
     pub fn get_resource<T: Any>(&self) -> Option<&T> {
-        self.resources.get_ref::<T>()
+        self.resource_storage.get::<T>()
     }
 
     /**
@@ -97,7 +97,47 @@ impl World {
     ```
     */
     pub fn remove_resource<T: Any>(&mut self) {
-        self.resources.remove::<T>();
+        self.resource_storage.remove::<T>();
+    }
+
+    /**
+    Checks whether a resource of type `T` exists in the world.
+
+    This function returns `true` if the specified resource type is present in the world; otherwise, it returns `false`.
+
+    Example:
+    ```
+    use sara_ecs::World;
+    let mut world = World::new();
+
+    world.add_resource(10_u32); // Adds a u32 resource to the world
+
+    assert!(world.contains_resource::<u32>()); // Checks if the u32 resource exists
+    assert!(!world.contains_resource::<f32>()); // Checks if a f32 resource does not exist
+    ```
+    */
+    pub fn contains_resource<T: Any>(&self) -> bool {
+        self.resource_storage.contains::<T>()
+    }
+
+    /**
+    Replaces an existing resource of type `T` with a new one.
+
+    This function will replace the current resource of the specified type in the world with the provided resource. If no resource of that type exists, the resource will be added.
+
+    Example:
+    ```
+    use sara_ecs::World;
+    let mut world = World::new();
+
+    world.add_resource(10_u32); // Adds a u32 resource to the world
+    world.replace_resource(20_u32); // Replaces the u32 resource with a new value
+
+    assert_eq!(world.get_resource::<u32>(), Some(&20)); // Verifies the resource is replaced
+    ```
+    */
+    pub fn replace_resource<T: Any>(&mut self, resource: T) {
+        self.resource_storage.replace(resource);
     }
 
     /**
@@ -116,7 +156,7 @@ impl World {
     ```
     */
     pub fn register_component<T: Any + 'static>(&mut self) {
-        self.entities.register_component::<T>();
+        self.entitiy_storage.register_component::<T>();
     }
 
     /**
@@ -148,8 +188,8 @@ impl World {
     // The entity now has Health and Speed components
     ```
     */
-    pub fn create_entity(&mut self) -> &mut entities::Entities {
-        self.entities.create_entity()
+    pub fn create_entity(&mut self) -> &mut entity_storage::EntityStorage {
+        self.entitiy_storage.create_entity()
     }
 
     /**
@@ -182,7 +222,7 @@ impl World {
         entity_id: usize,
         component_data: impl Any,
     ) -> Result<(), ECSError> {
-        self.entities
+        self.entitiy_storage
             .add_component_to_entity(entity_id, component_data)
     }
 
@@ -212,7 +252,7 @@ impl World {
     ```
     */
     pub fn remove_entity(&mut self, entity_id: usize) -> Result<(), ECSError> {
-        self.entities.remove_entity(entity_id)
+        self.entitiy_storage.remove_entity(entity_id)
     }
 
     /**
@@ -242,7 +282,7 @@ impl World {
     ```
     */
     pub fn remove_entity_component<T: Any>(&mut self, entity_id: usize) -> Result<(), ECSError> {
-        self.entities.remove_entity_component::<T>(entity_id)
+        self.entitiy_storage.remove_entity_component::<T>(entity_id)
     }
 
     /**
@@ -275,6 +315,6 @@ impl World {
     ```
     */
     pub fn query(&self) -> Query {
-        Query::new(&self.entities)
+        Query::new(&self.entitiy_storage)
     }
 }

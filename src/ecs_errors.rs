@@ -16,4 +16,7 @@ pub enum ECSError {
 
     #[error("Attempted to downcast to the wrong type.")]
     DowncastToWrongType,
+
+    #[error("Resource already registered.")]
+    ResourceAlreadyRegistered,
 }

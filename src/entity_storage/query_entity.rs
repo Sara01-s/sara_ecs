@@ -4,18 +4,18 @@ use std::{
     rc::Rc,
 };
 
-use super::Entities;
+use super::EntityStorage;
 use crate::ecs_errors::ECSError;
 
 type ExtractedComponents<'a> = &'a Vec<Option<Rc<RefCell<dyn Any>>>>;
 
 pub struct QueryEntity<'a> {
     pub id: usize,
-    entities: &'a Entities,
+    entities: &'a EntityStorage,
 }
 
 impl<'a> QueryEntity<'a> {
-    pub fn new(id: usize, entities: &'a Entities) -> Self {
+    pub fn new(id: usize, entities: &'a EntityStorage) -> Self {
         Self { id, entities }
     }
 

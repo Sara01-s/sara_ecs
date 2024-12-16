@@ -1,7 +1,3 @@
-use std::any::Any;
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use sara_ecs::ecs_errors::ECSError;
 use sara_ecs::World;
 
@@ -45,12 +41,12 @@ fn query_for_entities() -> Result<(), ECSError> {
 
     let query = world
         .query()
-        .with_component::<Position>()?
-        .with_component::<Scale>()?
+        .with_component_filter::<Position>()?
+        .with_component_filter::<Scale>()?
         .run();
 
-    let positions: &Vec<Rc<RefCell<dyn Any>>> = &query.1[0];
-    let scales: &Vec<Rc<RefCell<dyn Any>>> = &query.1[1];
+    let positions = &query.components[0];
+    let scales = &query.components[1];
 
     assert_eq!(positions.len(), scales.len());
     assert_eq!(positions.len(), 2);
@@ -97,12 +93,12 @@ fn remove_component_from_entity() -> Result<(), ECSError> {
 
     let query = world
         .query()
-        .with_component::<Position>()?
-        .with_component::<Scale>()?
+        .with_component_filter::<Position>()?
+        .with_component_filter::<Scale>()?
         .run();
 
-    assert_eq!(query.0.len(), 1);
-    assert_eq!(query.0[0], 1);
+    assert_eq!(query.entity_ids.len(), 1);
+    assert_eq!(query.entity_ids[0], 1);
     Ok(())
 }
 
@@ -119,11 +115,11 @@ fn add_component_to_entity() -> Result<(), ECSError> {
 
     let query = world
         .query()
-        .with_component::<Position>()?
-        .with_component::<Scale>()?
+        .with_component_filter::<Position>()?
+        .with_component_filter::<Scale>()?
         .run();
 
-    assert_eq!(query.0.len(), 1);
+    assert_eq!(query.entity_ids.len(), 1);
     Ok(())
 }
 
@@ -139,11 +135,11 @@ fn deleting_an_entity() -> Result<(), ECSError> {
 
     world.remove_entity(0)?;
 
-    let query = world.query().with_component::<Position>()?.run();
+    let query = world.query().with_component_filter::<Position>()?.run();
 
-    assert_eq!(query.0.len(), 1);
+    assert_eq!(query.entity_ids.len(), 1);
 
-    let borrowed_position = query.1[0][0].borrow();
+    let borrowed_position = query.components[0][0].borrow();
     let position = borrowed_position.downcast_ref::<Position>().unwrap();
 
     assert_eq!(position.0, 2.0);
@@ -151,8 +147,8 @@ fn deleting_an_entity() -> Result<(), ECSError> {
 
     world.create_entity().with_component(Position(30.0, 35.0))?;
 
-    let query = world.query().with_component::<Position>()?.run();
-    let borrowed_position = query.1[0][0].borrow();
+    let query = world.query().with_component_filter::<Position>()?.run();
+    let borrowed_position = query.components[0][0].borrow();
     let position = borrowed_position.downcast_ref::<Position>().unwrap();
 
     assert_eq!(position.0, 30.0);
